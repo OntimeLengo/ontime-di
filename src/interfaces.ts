@@ -7,9 +7,14 @@ interface IParam {
   target: Type | string;
 }
 
+interface IProps {
+  [key: string]: Type | any;
+}
+
 interface IMetadata {
   target: Type | string;
   args: IParam[];
+  props: IProps;
   singleton?: Type | any;
   factory?: Function;
   data?: any;

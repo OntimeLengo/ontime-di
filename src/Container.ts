@@ -8,12 +8,12 @@ class Container {
     let value: IMetadata | undefined;
 
     if (Container.injectables.has(target)) {
-      value = Container.injectables.get(target) || { target, args: [] };
+      value = Container.injectables.get(target) || { target, args: [], props: {} };
     } else {
       if (typeof target === 'string') {
-        value = { target, args: [], data };
+        value = { target, args: [], props: {}, data };
       } else {
-        value = { target, args: [] };
+        value = { target, args: [], props: {} };
       }
 
       Container.injectables.set(target, value);
@@ -22,14 +22,26 @@ class Container {
     return value;
   }
 
-  static registerParam(target: Type, cls: Type | string, idx: number): void {
-    const value: IMetadata = Container.register(target);
+  static registerParam(target: Type, cls: Type | string, method: string | undefined, idx: number | undefined): void {
+    const isArg: boolean = (typeof method === 'undefined' && typeof idx === 'number');
+
+    let value: IMetadata;
+
+    if (isArg) {
+      value = Container.register(target);
+    } else {
+      value = Container.register((<any>target).constructor);
+    }
 
     if (!value) {
       throw new Error('Class "' + target.name + '" is not registered');
     }
 
-    value.args.push({ idx, target: cls });
+    if (isArg) {
+      value.args.push({ idx: (idx || 0), target: cls });
+    } else {
+      value.props[method || ''] = cls;
+    }
   }
 
   static factory(target: Type, fn: Function): void {
@@ -69,6 +81,10 @@ class Container {
       args = args.map((v: IParam) => Container.get(v.target));
       
       const singleton: any = new cls(...args);
+
+      Object.keys(value.props).forEach((key: string) => {
+        singleton[key] = Container.get(value.props[key]);
+      });
 
       value.singleton = singleton;
 
